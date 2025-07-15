@@ -8,19 +8,31 @@ import {
   Send,
   Bold,
   Italic,
-  List,
   AlignCenter,
   Image as ImageIcon,
+  Github,
 } from 'lucide-react';
 import { fetchForumMessages, addForumMessage } from '../services/forumService';
 import type { ForumMessage } from '../types/forum';
+import AdminLogin from './AdminLogin';
 
 interface LandingPageProps {
   onEnter: () => void;
   isDarkMode: boolean;
+  isAdmin: boolean;
+  onLoginSuccess: (avatarUrl: string) => void;
+  onLogout: () => void;
+  avatarUrl: string;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onEnter, isDarkMode }) => {
+const LandingPage: React.FC<LandingPageProps> = ({
+  onEnter,
+  isDarkMode,
+  isAdmin,
+  onLoginSuccess,
+  onLogout,
+  avatarUrl,
+}) => {
   const [activeSection, setActiveSection] = useState<'main' | 'about' | 'forum'>('main');
   const [forumMessages, setForumMessages] = useState<ForumMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -32,7 +44,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, isDarkMode }) => {
   const [imageUrl, setImageUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch forum messages when forum section is active
   useEffect(() => {
     const loadMessages = async () => {
       if (activeSection === 'forum') {
@@ -85,8 +96,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, isDarkMode }) => {
   };
 
   const renderMainSection = () => (
-    <div className="min-h-screen flex flex-col items-center justify-center">
-      <div className="relative">
+    <div className="min-h-screen flex flex-col items-center justify-start py-16 px-4 overflow-y-auto">
+      <div className="relative mt-8">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -141,7 +152,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, isDarkMode }) => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.5, duration: 0.8 }}
-        className="flex flex-wrap justify-center gap-4 mt-8"
+        className="flex flex-col sm:flex-row justify-center gap-4 mt-8"
       >
         <button
           onClick={onEnter}
@@ -176,11 +187,72 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, isDarkMode }) => {
           Forum
         </button>
       </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.8, duration: 0.8 }}
+        className="mt-12 mb-16 flex flex-col sm:flex-row gap-6"
+      >
+        {[
+          {
+            name: 'Aditi Pandey',
+            github: 'AditiPandey568',
+            avatar: 'https://avatars.githubusercontent.com/u/136813656?v=4',
+          },
+          {
+            name: 'Yash Dwivedi',
+            github: 'Tempestyash123456',
+            avatar: 'https://avatars.githubusercontent.com/u/101048561?v=4',
+          },
+        {
+            name: 'Giftson Johnson',
+            github: 'Giftson-Johnson',
+            avatar: 'https://avatars.githubusercontent.com/u/156651001?v=4',
+          },
+        {
+            name: 'Teesha Rajbhar',
+            github: 'Teesha3',
+            avatar: 'https://avatars.githubusercontent.com/u/157092368?v=4',
+          }
+        ].map((developer) => (
+          <div
+            key={developer.github}
+            className={`p-6 rounded-lg ${
+              isDarkMode ? 'bg-gray-800' : 'bg-white'
+            } shadow-lg max-w-sm mx-auto text-center`}
+          >
+            <a
+              href={`https://github.com/${developer.github}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block group"
+            >
+              <div className="mb-4 relative w-24 h-24 mx-auto rounded-full overflow-hidden group-hover:ring-4 ring-emerald-500 transition-all duration-300">
+                <img
+                  src={developer.avatar}
+                  alt={developer.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                {developer.name}
+              </h3>
+              <div className="flex items-center justify-center gap-2">
+                <Github className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-gray-700'}`} />
+                <span className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  @{developer.github}
+                </span>
+              </div>
+            </a>
+          </div>
+        ))}
+      </motion.div>
     </div>
   );
 
   const renderAboutSection = () => (
-    <div className="min-h-screen py-16 px-4">
+    <div className="min-h-screen py-16 px-4 overflow-y-auto">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -218,93 +290,53 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, isDarkMode }) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          {/* Feature 1 */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className={`rounded-xl p-8 text-center ${
-              isDarkMode ? 'bg-gray-800 shadow-lg' : 'bg-white shadow-lg'
-            }`}
-          >
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center bg-gradient-to-br from-emerald-400 to-teal-500">
-              <Camera3d className="w-10 h-10 text-white" />
-            </div>
-
-            <h3
-              className={`text-2xl font-bold mb-4 ${
-                isDarkMode ? 'text-white' : 'text-emerald-800'
+          {[
+            {
+              icon: <Camera3d className="w-10 h-10 text-white" />,
+              title: '3D Plant Models',
+              description: 'Explore detailed 3D models of medicinal plants. Rotate, zoom, and examine plants from every angle to better understand their structure and identifying features.',
+            },
+            {
+              icon: <BookOpen className="w-10 h-10 text-white" />,
+              title: 'Comprehensive Database',
+              description: 'Access detailed information about each plant including botanical names, medicinal uses, cultivation tips, and traditional applications in various healing systems.',
+            },
+            {
+              icon: <MessageSquare className="w-10 h-10 text-white" />,
+              title: 'Community Forum',
+              description: 'Connect with other herbal enthusiasts, share your experiences, ask questions, and learn from a community of plant lovers and traditional medicine practitioners.',
+            },
+          ].map((feature, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 * index, duration: 0.5 }}
+              className={`rounded-xl p-8 text-center ${
+                isDarkMode ? 'bg-gray-800 shadow-lg' : 'bg-white shadow-lg'
               }`}
             >
-              3D Plant Models
-            </h3>
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center bg-gradient-to-br from-emerald-400 to-teal-500">
+                {feature.icon}
+              </div>
 
-            <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              Explore detailed 3D models of medicinal plants. Rotate, zoom, and
-              examine plants from every angle to better understand their
-              structure and identifying features.
-            </p>
-          </motion.div>
+              <h3
+                className={`text-2xl font-bold mb-4 ${
+                  isDarkMode ? 'text-white' : 'text-emerald-800'
+                }`}
+              >
+                {feature.title}
+              </h3>
 
-          {/* Feature 2 */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-            className={`rounded-xl p-8 text-center ${
-              isDarkMode ? 'bg-gray-800 shadow-lg' : 'bg-white shadow-lg'
-            }`}
-          >
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center bg-gradient-to-br from-emerald-400 to-teal-500">
-              <BookOpen className="w-10 h-10 text-white" />
-            </div>
-
-            <h3
-              className={`text-2xl font-bold mb-4 ${
-                isDarkMode ? 'text-white' : 'text-emerald-800'
-              }`}
-            >
-              Comprehensive Database
-            </h3>
-
-            <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              Access detailed information about each plant including botanical
-              names, medicinal uses, cultivation tips, and traditional
-              applications in various healing systems.
-            </p>
-          </motion.div>
-
-          {/* Feature 3 */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.5 }}
-            className={`rounded-xl p-8 text-center ${
-              isDarkMode ? 'bg-gray-800 shadow-lg' : 'bg-white shadow-lg'
-            }`}
-          >
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center bg-gradient-to-br from-emerald-400 to-teal-500">
-              <MessageSquare className="w-10 h-10 text-white" />
-            </div>
-
-            <h3
-              className={`text-2xl font-bold mb-4 ${
-                isDarkMode ? 'text-white' : 'text-emerald-800'
-              }`}
-            >
-              Community Forum
-            </h3>
-
-            <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              Connect with other herbal enthusiasts, share your experiences, ask
-              questions, and learn from a community of plant lovers and
-              traditional medicine practitioners.
-            </p>
-          </motion.div>
+              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                {feature.description}
+              </p>
+            </motion.div>
+          ))}
         </div>
 
         <div
-          className={`rounded-xl p-8 ${
+          className={`rounded-xl p-8 mb-16 ${
             isDarkMode ? 'bg-gray-800' : 'bg-white'
           } shadow-lg`}
         >
@@ -369,12 +401,23 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, isDarkMode }) => {
         isDarkMode
           ? 'bg-gray-900'
           : 'bg-gradient-to-br from-emerald-100 via-teal-100 to-emerald-200'
-      }`}
+      } overflow-x-hidden`}
     >
+      {/* Admin Login Button */}
+      <div className="absolute top-4 right-4">
+        <AdminLogin
+          isDarkMode={isDarkMode}
+          onLoginSuccess={onLoginSuccess}
+          onLogout={onLogout}
+          isAdmin={isAdmin}
+          avatarUrl={avatarUrl}
+        />
+      </div>
+
       {activeSection === 'main' && renderMainSection()}
       {activeSection === 'about' && renderAboutSection()}
       {activeSection === 'forum' && (
-        <div className="min-h-screen py-16 px-4">
+        <div className="min-h-screen py-16 px-4 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -588,7 +631,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, isDarkMode }) => {
             </div>
 
             {/* Messages List */}
-            <div className="space-y-6">
+            <div className="space-y-6 mb-16">
               {isLoading && forumMessages.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500 mx-auto"></div>

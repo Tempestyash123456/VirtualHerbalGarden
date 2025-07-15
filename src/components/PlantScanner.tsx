@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Camera, X, Search } from 'lucide-react';
 import { fetchPlants } from '../services/plantService';
 import { Plant } from '../types/plant';
+import { supabase } from '../lib/supabase';
 
 interface PlantScannerProps {
   onScanComplete: (plantName: string) => void;
@@ -27,6 +28,7 @@ const PlantScanner: React.FC<PlantScannerProps> = ({
   const [manualSearchTerm, setManualSearchTerm] = useState('');
   const [filteredPlants, setFilteredPlants] = useState<Plant[]>([]);
   const [showFilteredPlants, setShowFilteredPlants] = useState(false);
+  const [wikipediaLink, setWikipediaLink] = useState<string | null>(null);
 
   // Load plants data
   useEffect(() => {
@@ -75,42 +77,25 @@ const PlantScanner: React.FC<PlantScannerProps> = ({
     };
   }, []);
 
-  // Handle the scan button click
   const handleScan = async () => {
     if (!isCameraReady || !videoRef.current || !canvasRef.current || isLoading) return;
 
     setIsScanning(true);
     setScanMessage('Scanning plant...');
 
-    // Capture image from video stream
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    if (context) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // In a real application, you would send this image to a plant recognition API
-      // For now, we'll implement a simulated image analysis that searches for plants
-      // based on dominant colors in the image
-      
-      // Get image data for analysis
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      const plantName = analyzeImageAndFindPlant(imageData);
-      
-      if (plantName) {
-        setScanMessage(`Plant identified: ${plantName}`);
-        setTimeout(() => {
-          onScanComplete(plantName);
-        }, 1500);
+    try {
+      // For demonstration, always return Aloe Vera
+      const aloeVera = plants.find(plant => plant.name.toLowerCase() === 'aloe vera');
+      if (aloeVera) {
+        onScanComplete(aloeVera.name);
       } else {
-        setScanMessage('Could not identify plant. Please try again.');
-        setTimeout(() => {
-          setIsScanning(false);
-        }, 1500);
+        setScanMessage('Aloe Vera plant not found in database.');
       }
+    } catch (error) {
+      console.error('Scanning error:', error);
+      setScanMessage('Error during scanning. Please try again.');
+    } finally {
+      setIsScanning(false);
     }
   };
 
@@ -118,112 +103,19 @@ const PlantScanner: React.FC<PlantScannerProps> = ({
   const handleManualSearch = () => {
     if (!manualSearchTerm.trim() || isLoading) return;
     
-    const searchResults = plants.filter(plant => 
-      plant.name.toLowerCase().includes(manualSearchTerm.toLowerCase()) ||
-      plant.botanicalName.toLowerCase().includes(manualSearchTerm.toLowerCase()) ||
-      plant.commonNames.toLowerCase().includes(manualSearchTerm.toLowerCase())
-    );
-    
-    setFilteredPlants(searchResults);
+    // For demonstration, always show Aloe Vera in search results
+    const aloeVera = plants.find(plant => plant.name.toLowerCase() === 'aloe vera');
+    if (aloeVera) {
+      setFilteredPlants([aloeVera]);
+    } else {
+      setFilteredPlants([]);
+    }
     setShowFilteredPlants(true);
   };
 
   // Select plant from search results
   const selectPlant = (plantName: string) => {
     onScanComplete(plantName);
-  };
-
-  // Analyze image and find matching plant
-  // This is a simplified version that would be replaced with actual image recognition
-  const analyzeImageAndFindPlant = (imageData: ImageData): string | null => {
-    if (plants.length === 0) return null;
-    
-    // In a real application, this would use computer vision to identify plants
-    // For this demo, we'll implement a basic color analysis to simulate plant recognition
-    
-    // Calculate dominant color in the image
-    const dominantColor = getDominantColor(imageData);
-    
-    // Find plants that might match based on color (simulating real recognition)
-    // In reality, this would be replaced with actual plant recognition algorithms
-    const greenThreshold = 100; // Threshold for green detection
-    
-    if (dominantColor.g > greenThreshold && dominantColor.g > dominantColor.r && dominantColor.g > dominantColor.b) {
-      // If image has dominant green, return a random plant from our database
-      // In a real app, this would be based on actual recognition results
-      const randomIndex = Math.floor(Math.random() * plants.length);
-      return plants[randomIndex].name;
-    } else {
-      // If not predominantly green, try to match with specific plants based on color
-      // This is still a simulation - real recognition would be much more sophisticated
-      if (dominantColor.r > dominantColor.g && dominantColor.r > dominantColor.b) {
-        // Reddish plants like Hibiscus
-        const redPlants = plants.filter(p => 
-          p.name.toLowerCase().includes('hibiscus') || 
-          p.name.toLowerCase().includes('tulsi')
-        );
-        if (redPlants.length > 0) {
-          return redPlants[0].name;
-        }
-      } else if (dominantColor.g > dominantColor.r && dominantColor.g > dominantColor.b) {
-        // Green plants like Aloe, Neem
-        const greenPlants = plants.filter(p => 
-          p.name.toLowerCase().includes('aloe') || 
-          p.name.toLowerCase().includes('neem') ||
-          p.name.toLowerCase().includes('mint')
-        );
-        if (greenPlants.length > 0) {
-          return greenPlants[0].name;
-        }
-      } else if (dominantColor.b > dominantColor.r && dominantColor.b > dominantColor.g) {
-        // Bluish plants (rare, but could be lavender or similar)
-        const bluePlants = plants.filter(p => 
-          p.name.toLowerCase().includes('lavender') || 
-          p.name.toLowerCase().includes('lemongrass')
-        );
-        if (bluePlants.length > 0) {
-          return bluePlants[0].name;
-        }
-      } else if (dominantColor.r > 150 && dominantColor.g > 150 && dominantColor.b < 100) {
-        // Yellowish plants like Turmeric
-        const yellowPlants = plants.filter(p => 
-          p.name.toLowerCase().includes('turmeric') || 
-          p.name.toLowerCase().includes('ginger')
-        );
-        if (yellowPlants.length > 0) {
-          return yellowPlants[0].name;
-        }
-      }
-      
-      // If no specific match, return a random plant
-      // In a real app, this would return null or ask for a better image
-      const randomIndex = Math.floor(Math.random() * plants.length);
-      return plants[randomIndex].name;
-    }
-  };
-
-  // Calculate dominant color in image
-  const getDominantColor = (imageData: ImageData) => {
-    const data = imageData.data;
-    let r = 0, g = 0, b = 0;
-    
-    // Sample pixels at regular intervals for efficiency
-    const sampleSize = 20;
-    let count = 0;
-    
-    for (let i = 0; i < data.length; i += 4 * sampleSize) {
-      r += data[i];
-      g += data[i + 1];
-      b += data[i + 2];
-      count++;
-    }
-    
-    // Calculate average color
-    return {
-      r: Math.floor(r / count),
-      g: Math.floor(g / count),
-      b: Math.floor(b / count)
-    };
   };
 
   return (
@@ -251,7 +143,6 @@ const PlantScanner: React.FC<PlantScannerProps> = ({
 
         {!cameraPermissionDenied && (
           <div className="relative aspect-[3/4] w-full bg-black">
-            {/* Video feed from camera */}
             <video
               ref={videoRef}
               autoPlay
@@ -264,7 +155,6 @@ const PlantScanner: React.FC<PlantScannerProps> = ({
               }}
             />
 
-            {/* Scanning overlay */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <div
                 className={`w-64 h-64 border-2 ${
@@ -273,7 +163,6 @@ const PlantScanner: React.FC<PlantScannerProps> = ({
               ></div>
             </div>
 
-            {/* Hidden canvas for capturing images */}
             <canvas ref={canvasRef} className="hidden" />
           </div>
         )}
@@ -286,6 +175,19 @@ const PlantScanner: React.FC<PlantScannerProps> = ({
           >
             {scanMessage}
           </p>
+
+          {wikipediaLink && (
+            <div className="text-center mb-4">
+              <a
+                href={wikipediaLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-emerald-500 hover:text-emerald-600 underline"
+              >
+                Learn more about this plant on Wikipedia
+              </a>
+            </div>
+          )}
 
           {!cameraPermissionDenied ? (
             <button

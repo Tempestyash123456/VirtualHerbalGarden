@@ -185,3 +185,24 @@ input[type='text'] {
 .gfg-toggle-switch .block {
   display: block;
 }
+
+/* Add this CSS to your stylesheet */
+.speech-bubble {
+  position: relative;
+  background: #f0f0f0;
+  border-radius: 0.4em;
+  padding: 10px;
+}
+
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -10px;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 10px solid #f0f0f0;
+}

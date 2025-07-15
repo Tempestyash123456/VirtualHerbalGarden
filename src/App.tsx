@@ -8,6 +8,7 @@ import PlantCard from './components/PlantCard';
 import PlantPopup from './components/PlantPopup';
 import PlantScanner from './components/PlantScanner';
 import AddPlantForm from './components/AddPlantForm';
+import AdminLogin from './components/AdminLogin';
 import {
   Leaf,
   Sun,
@@ -17,6 +18,8 @@ import {
   Search,
   Camera,
 } from 'lucide-react';
+import Tour from './components/Tour';
+import Assistant from './components/Assistant';
 
 function App() {
   const [plants, setPlants] = useState<Plant[]>([]);
@@ -34,7 +37,46 @@ function App() {
   const [showScanner, setShowScanner] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [scanNotFound, setShowNotFound] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('https://api.dicebear.com/7.x/initials/svg?seed=YD');
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  const [isNewUser, setIsNewUser] = useState(false);
+
+  useEffect(() => {
+    const isNew = localStorage.getItem('isNewUser');
+    if (isNew === null) {
+      setIsNewUser(true);
+      localStorage.setItem('isNewUser', 'false');
+    }
+  }, []);
+
+  const handleFinishTour = () => {
+    setIsNewUser(false);
+  };
+
+  // Create alphabet array for filter
+  const alphabet = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
+
+  // Check admin status on load
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: adminData } = await supabase
+          .from('admins')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        setIsAdmin(!!adminData);
+      }
+    };
+
+    checkAdminStatus();
+  }, []);
 
   // Load plants data from Supabase
   useEffect(() => {
@@ -103,12 +145,40 @@ function App() {
     setIsDarkMode(!isDarkMode);
   };
 
-  // Filter plants based on category and search query
+  // Filter plants based on category, search query, and selected letter
   const filteredPlants = plants.filter(
-    (plant) =>
-      (currentCategory === 'all' || plant.category === currentCategory) &&
-      plant.name.toLowerCase().includes(searchQuery.toLowerCase())
+    (plant) => {
+      const matchesCategory = currentCategory === 'all' || plant.category === currentCategory;
+      const matchesSearch = plant.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesLetter = selectedLetter === null || plant.name.charAt(0).toUpperCase() === selectedLetter;
+      
+      return matchesCategory && matchesSearch && matchesLetter;
+    }
   );
+
+  // Handle letter selection
+  const handleLetterSelect = (letter: string) => {
+    if (selectedLetter === letter) {
+      setSelectedLetter(null); // Toggle off if already selected
+    } else {
+      setSelectedLetter(letter);
+    }
+  };
+
+  // Get available letters (letters for which plants exist)
+  const getAvailableLetters = () => {
+    const availableLetters = new Set<string>();
+    
+    plants.forEach(plant => {
+      if (currentCategory === 'all' || plant.category === currentCategory) {
+        availableLetters.add(plant.name.charAt(0).toUpperCase());
+      }
+    });
+    
+    return availableLetters;
+  };
+
+  const availableLetters = getAvailableLetters();
 
   // Handle scan completion
   const handleScanComplete = (plantName: string) => {
@@ -228,6 +298,16 @@ function App() {
       <LandingPage
         onEnter={() => setShowLandingPage(false)}
         isDarkMode={isDarkMode}
+        isAdmin={isAdmin}
+        onLoginSuccess={(avatar) => {
+          setIsAdmin(true);
+          setAvatarUrl(avatar);
+        }}
+        onLogout={() => {
+          setIsAdmin(false);
+          setAvatarUrl('https://api.dicebear.com/7.x/initials/svg?seed=YD');
+        }}
+        avatarUrl={avatarUrl}
       />
     );
   }
@@ -240,12 +320,7 @@ function App() {
       onClick={handleClickOutside}
     >
       {/* Intro Animation */}
-      {showIntro && (
-        <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
-          <div className="text-[180px] text-emerald-500 animate-pulse">VHG</div>
-        </div>
-      )}
-
+      {isNewUser && <Tour onFinish={handleFinishTour} />}
       {/* Header */}
       <header
         className={`${
@@ -254,7 +329,10 @@ function App() {
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between relative">
           {/* Logo */}
-          <div className="flex items-center">
+          <div
+            className="flex items-center cursor-pointer"
+            onClick={() => setShowLandingPage(true)}
+          >
             <div className="w-10 h-10 rounded-full border-2 border-emerald-300 overflow-hidden flex items-center justify-center bg-white mr-3">
               <Leaf className="w-6 h-6 text-emerald-600" />
             </div>
@@ -310,14 +388,16 @@ function App() {
               <Menu size={20} />
             </button>
 
-            {/* Add Plant Button */}
-            <button
-              onClick={() => setShowAddPlantPopup(true)}
-              className="p-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
-              title="Add New Plant"
-            >
-              <PlusCircle size={20} />
-            </button>
+            {/* Add Plant Button - Only visible for admins */}
+            {isAdmin && (
+              <button
+                onClick={() => setShowAddPlantPopup(true)}
+                className="p-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                title="Add New Plant"
+              >
+                <PlusCircle size={20} />
+              </button>
+            )}
 
             {/* Dark Mode Toggle */}
             <button
@@ -329,6 +409,21 @@ function App() {
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
+
+            {/* Admin Login */}
+            <AdminLogin
+              isDarkMode={isDarkMode}
+              onLoginSuccess={(avatar) => {
+                setIsAdmin(true);
+                setAvatarUrl(avatar);
+              }}
+              onLogout={() => {
+                setIsAdmin(false);
+                setAvatarUrl('https://api.dicebear.com/7.x/initials/svg?seed=YD');
+              }}
+              isAdmin={isAdmin}
+              avatarUrl={avatarUrl}
+            />
           </div>
         </div>
       </header>
@@ -361,22 +456,55 @@ function App() {
             }`}
           >
             {currentCategory === 'all'
-              ? 'All Plants'
-              : currentCategory === 'ayurvedic'
-              ? 'Ayurvedic Plants'
-              : currentCategory === 'immunity'
-              ? 'Immunity Boosters'
-              : currentCategory === 'drugs'
-              ? 'Medicinal Drugs'
-              : 'Miscellaneous Plants'}
+              ? 'All'
+              : currentCategory === 'plant'
+              ? 'Plants'
+              : currentCategory === 'herb'
+              ? 'Herbs'
+              : 'Not categorizeed yet'}
           </h2>
-          <p
-            className={`text-sm ${
-              isDarkMode ? 'text-gray-400' : 'text-emerald-600'
-            }`}
-          >
-            {filteredPlants.length} plants found
-          </p>
+          
+          {/* A-Z Alphabet Filter */}
+          <div className="mt-4 flex flex-wrap justify-center gap-1 max-w-3xl mx-auto">
+            {alphabet.map(letter => (
+              <button
+                key={letter}
+                onClick={() => handleLetterSelect(letter)}
+                className={`
+                  w-8 h-8 text-sm rounded-full font-medium 
+                  ${selectedLetter === letter 
+                    ? isDarkMode 
+                      ? 'bg-emerald-600 text-white' 
+                      : 'bg-emerald-600 text-white'
+                    : availableLetters.has(letter)
+                      ? isDarkMode
+                        ? 'bg-gray-700 text-white hover:bg-gray-600'
+                        : 'bg-white text-emerald-800 hover:bg-emerald-100'
+                      : isDarkMode
+                        ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }
+                  transition-colors
+                `}
+                disabled={!availableLetters.has(letter)}
+              >
+                {letter}
+              </button>
+            ))}
+            {selectedLetter && (
+              <button
+                onClick={() => setSelectedLetter(null)}
+                className={`
+                  px-4 h-8 ml-2 text-sm rounded-full font-medium
+                  ${isDarkMode 
+                    ? 'bg-red-500 text-white hover:bg-red-600' 
+                    : 'bg-red-500 text-white hover:bg-red-600'}
+                `}
+              >
+                Clear
+              </button>
+            )}
+          </div>
 
           {/* Plant not found message */}
           {scanNotFound && (
@@ -391,16 +519,26 @@ function App() {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
-            {filteredPlants.map((plant) => (
-              <PlantCard
-                key={plant.id}
-                plant={plant}
-                onClick={showPlantPopup}
-                isDarkMode={isDarkMode}
-              />
-            ))}
-          </div>
+          <>
+            {/* Number of plants found after filtering */}
+            {/* <p className={`text-sm text-center mb-4 ${
+              isDarkMode ? 'text-gray-400' : 'text-emerald-600'
+            }`}>
+              {filteredPlants.length} plants found
+              {selectedLetter && ` starting with "${selectedLetter}"`}
+            </p> */}
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
+              {filteredPlants.map((plant) => (
+                <PlantCard
+                  key={plant.id}
+                  plant={plant}
+                  onClick={showPlantPopup}
+                  isDarkMode={isDarkMode}
+                />
+              ))}
+            </div>
+          </>
         )}
       </main>
 
@@ -435,6 +573,9 @@ function App() {
           isDarkMode={isDarkMode}
         />
       )}
+
+       {/* Assistant */}
+       <Assistant />
     </div>
   );
 }

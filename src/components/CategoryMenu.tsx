@@ -1,5 +1,5 @@
 import React from 'react';
-import { Leaf, Shield, Pill, Flower, Grid } from 'lucide-react';
+import { Leaf, Flower, Grid } from 'lucide-react';
 
 interface CategoryMenuProps {
   currentCategory: string;
@@ -14,11 +14,9 @@ const CategoryMenu: React.FC<CategoryMenuProps> = ({
 }) => {
   const getCategoryName = (category: string): string => {
     switch (category) {
-      case 'all': return 'All Plants';
-      case 'ayurvedic': return 'Ayurvedic';
-      case 'immunity': return 'Immunity Boosters';
-      case 'drugs': return 'Drugs';
-      case 'miscellaneous': return 'Miscellaneous';
+      case 'all': return 'All';
+      case 'plant': return 'Plants';
+      case 'herb': return 'Herbs';
       default: return category;
     }
   };
@@ -26,10 +24,8 @@ const CategoryMenu: React.FC<CategoryMenuProps> = ({
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'all': return <Grid size={18} />;
-      case 'ayurvedic': return <Leaf size={18} />;
-      case 'immunity': return <Shield size={18} />;
-      case 'drugs': return <Pill size={18} />;
-      case 'miscellaneous': return <Flower size={18} />;
+      case 'plant': return <Flower size={18} />;
+      case 'herb': return <Leaf size={18} />;
       default: return <Leaf size={18} />;
     }
   };
@@ -40,7 +36,7 @@ const CategoryMenu: React.FC<CategoryMenuProps> = ({
         <h3 className={`font-bold ${isDarkMode ? 'text-white' : 'text-emerald-800'}`}>Categories</h3>
       </div>
       <ul>
-        {['all', 'ayurvedic', 'immunity', 'drugs', 'miscellaneous'].map((category) => (
+        {['all', 'plant', 'herb'].map((category) => (
           <li key={category}>
             <button
               onClick={() => onCategoryChange(category)}
